@@ -1,0 +1,50 @@
+from collections import deque
+
+# Check if a state is valid
+def is_valid_state(m_left, c_left, m_right, c_right):
+    if (m_left < 0 or c_left < 0 or m_right < 0 or c_right < 0):
+        return False
+    if (m_left > 0 and m_left < c_left):   # More cannibals than missionaries (left)
+        return False
+    if (m_right > 0 and m_right < c_right): # More cannibals than missionaries (right)
+        return False
+    return True
+
+# BFS to solve missionaries and cannibals
+def missionaries_and_cannibals():
+    # State: (m_left, c_left, m_right, c_right, boat_side)
+    # boat_side = 'L' (boat on left), 'R' (boat on right)
+    start = (3, 3, 0, 0, 'L')
+    goal = (0, 0, 3, 3, 'R')
+
+    q = deque([(start, [])])  # Queue of (state, path)
+    visited = set([start])
+
+    while q:
+        (m_left, c_left, m_right, c_right, boat), path = q.popleft()
+
+        if (m_left, c_left, m_right, c_right, boat) == goal:
+            print("Solution found!")
+            for step in path + [goal]:
+                print(step)
+            return True
+
+        # Possible moves (M = Missionary, C = Cannibal)
+        moves = [(1, 0), (2, 0), (0, 1), (0, 2), (1, 1)]
+
+        for m, c in moves:
+            if boat == 'L':  # Move from left to right
+                new_state = (m_left - m, c_left - c, m_right + m, c_right + c, 'R')
+            else:            # Move from right to left
+                new_state = (m_left + m, c_left + c, m_right - m, c_right - c, 'L')
+
+            if is_valid_state(new_state[0], new_state[1], new_state[2], new_state[3]) and new_state not in visited:
+                visited.add(new_state)
+                q.append((new_state, path + [(m_left, c_left, m_right, c_right, boat)]))
+
+    print("No solution found.")
+    return False
+
+# Main program
+if __name__ == "__main__":
+    missionaries_and_cannibals()
