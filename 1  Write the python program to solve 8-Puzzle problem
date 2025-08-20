@@ -1,0 +1,101 @@
+import heapq
+
+# Class for puzzle state
+class PuzzleState:
+    def __init__(self, board, parent=None, move="", depth=0, cost=0):
+        self.board = board
+        self.parent = parent
+        self.move = move
+        self.depth = depth
+        self.cost = cost
+        self.zero_index = board.index(0)
+
+    def __lt__(self, other):
+        return (self.cost + self.depth) < (other.cost + other.depth)
+
+# Heuristic: Manhattan Distance
+def manhattan_distance(board, goal):
+    distance = 0
+    for i, value in enumerate(board):
+        if value != 0:
+            x1, y1 = divmod(i, 3)
+            x2, y2 = divmod(goal.index(value), 3)
+            distance += abs(x1 - x2) + abs(y1 - y2)
+    return distance
+
+# Get next states
+def get_neighbors(state, goal):
+    neighbors = []
+    x, y = divmod(state.zero_index, 3)
+    moves = {
+        "Up": (x - 1, y),
+        "Down": (x + 1, y),
+        "Left": (x, y - 1),
+        "Right": (x, y + 1)
+    }
+
+    for move, (nx, ny) in moves.items():
+        if 0 <= nx < 3 and 0 <= ny < 3:
+            new_index = nx * 3 + ny
+            new_board = list(state.board)
+            # Swap blank with neighbor
+            new_board[state.zero_index], new_board[new_index] = new_board[new_index], new_board[state.zero_index]
+            neighbors.append(PuzzleState(
+                new_board, state, move, state.depth + 1,
+                manhattan_distance(new_board, goal)
+            ))
+    return neighbors
+
+# A* Search
+def a_star(start, goal):
+    open_list = []
+    closed_set = set()
+
+    start_state = PuzzleState(start, None, "", 0, manhattan_distance(start, goal))
+    heapq.heappush(open_list, start_state)
+
+    while open_list:
+        current_state = heapq.heappop(open_list)
+
+        if current_state.board == goal:
+            moves = []
+            states = []
+            while current_state.parent:
+                moves.append(current_state.move)
+                states.append(current_state.board)
+                current_state = current_state.parent
+            states.append(current_state.board)
+            return moves[::-1], states[::-1]
+
+        closed_set.add(tuple(current_state.board))
+
+        for neighbor in get_neighbors(current_state, goal):
+            if tuple(neighbor.board) not in closed_set:
+                heapq.heappush(open_list, neighbor)
+    return None, None
+
+# Print puzzle board
+def print_board(board):
+    for i in range(0, 9, 3):
+        row = board[i:i+3]
+        print(" ".join(str(x) if x != 0 else "_" for x in row))
+    print()
+
+# Main program
+if __name__ == "__main__":
+    start = [1, 2, 3,
+             4, 0, 6,
+             7, 5, 8]   # Start state
+
+    goal = [1, 2, 3,
+            4, 5, 6,
+            7, 8, 0]   # Goal state
+
+    moves, states = a_star(start, goal)
+    if moves:
+        print("Solution found in", len(moves), "moves:")
+        for move, state in zip(moves, states[1:]):
+            print("Move:", move)
+            print_board(state)
+    else:
+        print("No solution exists.")
