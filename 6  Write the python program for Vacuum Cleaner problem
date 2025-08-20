@@ -1,0 +1,39 @@
+import random
+
+def vacuum_cleaner(n_rooms):
+    # Create environment: 1 = Dirty, 0 = Clean
+    environment = [random.choice([0, 1]) for _ in range(n_rooms)]
+    print("Initial environment:", environment)
+
+    position = 0  # Start at room 0
+
+    steps = 0
+    while any(environment):  # Continue until all rooms are clean
+        print(f"\nVacuum is in Room {position} (State: {'Dirty' if environment[position] else 'Clean'})")
+
+        # Clean if dirty
+        if environment[position] == 1:
+            print(f"Cleaning room {position}...")
+            environment[position] = 0
+        else:
+            print(f"Room {position} is already clean.")
+
+        # Check if done
+        if not any(environment):
+            print("\nAll rooms are clean! ✅")
+            print("Final environment:", environment)
+            print("Total steps taken:", steps + 1)
+            break
+
+        # Move vacuum (Right → if possible, else Left)
+        if position < n_rooms - 1:
+            position += 1
+        else:
+            position = 0  # Loop back to start (circular movement)
+        steps += 1
+
+
+# Main program
+if __name__ == "__main__":
+    n_rooms = 5   # You can change number of rooms
+    vacuum_cleaner(n_rooms)
