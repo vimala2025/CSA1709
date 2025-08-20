@@ -1,0 +1,57 @@
+N = 8
+
+def print_solution(board):
+    for i in range(N):
+        row = ""
+        for j in range(N):
+            if board[i][j] == 1:
+                row += "Q "
+            else:
+                row += ". "
+        print(row)
+    print("\n")
+
+# Check if a queen can be placed on board[row][col]
+def is_safe(board, row, col):
+    # Check left side of this row
+    for i in range(col):
+        if board[row][i] == 1:
+            return False
+
+    # Check upper diagonal on left side
+    for i, j in zip(range(row, -1, -1), range(col, -1, -1)):
+        if board[i][j] == 1:
+            return False
+
+    # Check lower diagonal on left side
+    for i, j in zip(range(row, N), range(col, -1, -1)):
+        if board[i][j] == 1:
+            return False
+
+    return True
+
+# Solve the problem using backtracking
+def solve_nq_util(board, col):
+    # If all queens are placed
+    if col >= N:
+        print_solution(board)
+        return True
+
+    res = False
+    for i in range(N):
+        if is_safe(board, i, col):
+            board[i][col] = 1
+            res = solve_nq_util(board, col + 1) or res
+            board[i][col] = 0  # backtrack
+    return res
+
+def solve_nq():
+    board = [[0] * N for _ in range(N)]
+    if not solve_nq_util(board, 0):
+        print("Solution does not exist")
+        return False
+    return True
+
+# Main program
+if __name__ == "__main__":
+    solve_nq()
