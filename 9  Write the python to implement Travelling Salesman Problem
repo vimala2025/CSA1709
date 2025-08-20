@@ -1,0 +1,39 @@
+import itertools
+
+def travelling_salesman(graph, start):
+    # graph is adjacency matrix
+    vertices = list(range(len(graph)))
+    vertices.remove(start)
+    min_path = float("inf")
+    best_route = None
+
+    for perm in itertools.permutations(vertices):
+        current_cost = 0
+        k = start
+
+        # Calculate cost of current permutation
+        for j in perm:
+            current_cost += graph[k][j]
+            k = j
+        current_cost += graph[k][start]  # return to start
+
+        if current_cost < min_path:
+            min_path = current_cost
+            best_route = (start,) + perm + (start,)
+
+    return best_route, min_path
+
+
+# Main Program
+if __name__ == "__main__":
+    # Example adjacency matrix (symmetric)
+    graph = [
+        [0, 10, 15, 20],
+        [10, 0, 35, 25],
+        [15, 35, 0, 30],
+        [20, 25, 30, 0]
+    ]
+    start = 0
+    route, cost = travelling_salesman(graph, start)
+    print("Best Route:", route)
+    print("Minimum Cost:", cost)
