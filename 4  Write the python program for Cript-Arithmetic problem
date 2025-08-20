@@ -1,0 +1,31 @@
+import itertools
+
+# Crypt-Arithmetic Problem: SEND + MORE = MONEY
+def solve_cryptarithmetic():
+    letters = "SENDMORY"   # Unique letters in the problem
+    digits = range(10)
+
+    for perm in itertools.permutations(digits, len(letters)):
+        mapping = dict(zip(letters, perm))
+
+        # Skip if leading letters are zero
+        if mapping['S'] == 0 or mapping['M'] == 0:
+            continue
+
+        send = mapping['S']*1000 + mapping['E']*100 + mapping['N']*10 + mapping['D']
+        more = mapping['M']*1000 + mapping['O']*100 + mapping['R']*10 + mapping['E']
+        money = mapping['M']*10000 + mapping['O']*1000 + mapping['N']*100 + mapping['E']*10 + mapping['Y']
+
+        if send + more == money:
+            print("Solution found!")
+            print("Mapping:", mapping)
+            print(f"SEND  = {send}")
+            print(f"MORE  = {more}")
+            print(f"MONEY = {money}")
+            return
+
+    print("No solution found.")
+
+# Main program
+if __name__ == "__main__":
+    solve_cryptarithmetic()
