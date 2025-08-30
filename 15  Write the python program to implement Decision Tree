@@ -1,0 +1,85 @@
+# Decision Tree from scratch using ID3 Algorithm
+
+import math
+from collections import Counter
+
+def entropy(data):
+    labels = [row[-1] for row in data]
+    counts = Counter(labels)
+    total = len(labels)
+    return -sum((count/total) * math.log2(count/total) for count in counts.values())
+
+def split_data(data, feature, value):
+    return [row for row in data if row[feature] == value]
+
+def best_feature(data):
+    base_entropy = entropy(data)
+    features = len(data[0]) - 1
+    best_gain, best_idx = 0, -1
+    for f in range(features):
+        values = set(row[f] for row in data)
+        new_entropy = 0
+        for v in values:
+            subset = split_data(data, f, v)
+            new_entropy += (len(subset)/len(data)) * entropy(subset)
+        gain = base_entropy - new_entropy
+        if gain > best_gain:
+            best_gain, best_idx = gain, f
+    return best_idx
+
+def majority_label(data):
+    labels = [row[-1] for row in data]
+    return Counter(labels).most_common(1)[0][0]
+
+def build_tree(data, features):
+    labels = [row[-1] for row in data]
+    if labels.count(labels[0]) == len(labels):
+        return labels[0]
+    if len(data[0]) == 1:
+        return majority_label(data)
+
+    feat = best_feature(data)
+    tree = {features[feat]: {}}
+    values = set(row[feat] for row in data)
+    for v in values:
+        subset = [row[:feat] + row[feat+1:] for row in data if row[feat] == v]
+        sub_features = features[:feat] + features[feat+1:]
+        tree[features[feat]][v] = build_tree(subset, sub_features)
+    return tree
+
+def classify(tree, features, sample):
+    if not isinstance(tree, dict):
+        return tree
+    feat = next(iter(tree))
+    idx = features.index(feat)
+    value = sample[idx]
+    if value in tree[feat]:
+        sub_tree = tree[feat][value]
+        sub_features = features[:idx] + features[idx+1:]
+        sub_sample = sample[:idx] + sample[idx+1:]
+        return classify(sub_tree, sub_features, sub_sample)
+    return None
+
+# Example Dataset: [Outlook, Temperature, Humidity, Windy, PlayTennis]
+data = [
+    ["Sunny", "Hot", "High", "False", "No"],
+    ["Sunny", "Hot", "High", "True", "No"],
+    ["Overcast", "Hot", "High", "False", "Yes"],
+    ["Rain", "Mild", "High", "False", "Yes"],
+    ["Rain", "Cool", "Normal", "False", "Yes"],
+    ["Rain", "Cool", "Normal", "True", "No"],
+    ["Overcast", "Cool", "Normal", "True", "Yes"],
+    ["Sunny", "Mild", "High", "False", "No"],
+    ["Sunny", "Cool", "Normal", "False", "Yes"],
+    ["Rain", "Mild", "Normal", "False", "Yes"],
+    ["Sunny", "Mild", "Normal", "True", "Yes"],
+    ["Overcast", "Mild", "High", "True", "Yes"],
+    ["Overcast", "Hot", "Normal", "False", "Yes"],
+    ["Rain", "Mild", "High", "True", "No"]
+]
+
+features = ["Outlook", "Temperature", "Humidity", "Windy"]
+tree = build_tree(data, features)
+
+print("Decision Tree:", tree)
+print("Test Sample ['Sunny','Cool','High','True'] =>", classify(tree, features, ["Sunny","Cool","High","True"]))
