@@ -1,0 +1,130 @@
+from collections import deque
+from copy import deepcopy
+
+class CSP:
+    def __init__(self, variables, domains, neighbors, constraint_fn):
+        self.variables = variables
+        self.domains = {v: list(domains[v]) for v in variables}
+        self.neighbors = {v: list(neighbors[v]) for v in variables}
+        self.constraint_fn = constraint_fn
+
+    def is_consistent(self, var, value, assignment):
+        for n in self.neighbors[var]:
+            if n in assignment:
+                if not self.constraint_fn(var, value, n, assignment[n]):
+                    return False
+        return True
+
+def select_unassigned_variable(assignment, csp):
+    unassigned = [v for v in csp.variables if v not in assignment]
+    def legal_count(v):
+        return sum(1 for val in csp.domains[v] if csp.is_consistent(v, val, assignment))
+    mrv_val = min(legal_count(v) for v in unassigned)
+    mrv_candidates = [v for v in unassigned if legal_count(v) == mrv_val]
+    if len(mrv_candidates) == 1:
+        return mrv_candidates[0]
+    return max(mrv_candidates, key=lambda v: sum(1 for n in csp.neighbors[v] if n not in assignment))
+
+def order_domain_values(var, assignment, csp):
+    def conflicts(value):
+        count = 0
+        for n in csp.neighbors[var]:
+            if n not in assignment:
+                for nv in csp.domains[n]:
+                    if not csp.constraint_fn(var, value, n, nv):
+                        count += 1
+        return count
+    return sorted(csp.domains[var], key=conflicts)
+
+def ac3(csp, domains=None):
+    if domains is None:
+        domains = deepcopy(csp.domains)
+    queue = deque()
+    for Xi in csp.variables:
+        for Xj in csp.neighbors[Xi]:
+            queue.append((Xi, Xj))
+    def revise(Xi, Xj):
+        revised = False
+        to_remove = []
+        for x in domains[Xi]:
+            if not any(csp.constraint_fn(Xi, x, Xj, y) for y in domains[Xj]):
+                to_remove.append(x)
+        if to_remove:
+            for x in to_remove:
+                domains[Xi].remove(x)
+            revised = True
+        return revised
+    while queue:
+        Xi, Xj = queue.popleft()
+        if revise(Xi, Xj):
+            if not domains[Xi]:
+                return False, domains
+            for Xk in csp.neighbors[Xi]:
+                if Xk != Xj:
+                    queue.append((Xk, Xi))
+    return True, domains
+
+def inference_with_ac3(csp, assignment):
+    temp = deepcopy(csp.domains)
+    for v, val in assignment.items():
+        temp[v] = [val]
+    return ac3(csp, temp)
+
+def backtrack(assignment, csp):
+    if len(assignment) == len(csp.variables):
+        return assignment
+    var = select_unassigned_variable(assignment, csp)
+    for value in order_domain_values(var, assignment, csp):
+        if csp.is_consistent(var, value, assignment):
+            assignment[var] = value
+            ok, new_domains = inference_with_ac3(csp, assignment)
+            if ok:
+                old_domains = csp.domains
+                csp.domains = new_domains
+                result = backtrack(assignment, csp)
+                if result is not None:
+                    return result
+                csp.domains = old_domains
+            assignment.pop(var, None)
+    return None
+
+def solve_csp(csp):
+    ok, pruned = ac3(csp)
+    if not ok:
+        return None
+    old = csp.domains
+    csp.domains = pruned
+    solution = backtrack({}, csp)
+    csp.domains = old
+    return solution
+
+def australia_example():
+    variables = ["WA", "NT", "SA", "Q", "NSW", "V", "T"]
+    colors = ["Red", "Green", "Blue"]
+    neighbors = {
+        "WA":  ["NT", "SA"],
+        "NT":  ["WA", "SA", "Q"],
+        "SA":  ["WA", "NT", "Q", "NSW", "V"],
+        "Q":   ["NT", "SA", "NSW"],
+        "NSW": ["Q", "SA", "V"],
+        "V":   ["SA", "NSW", "T"],
+        "T":   ["V"],
+    }
+    domains = {v: list(colors) for v in variables}
+    def different_colors(X, x, Y, y):
+        if X == Y: return True
+        if Y in neighbors[X]:
+            return x != y
+        return True
+    problem = CSP(variables, domains, neighbors, different_colors)
+    solution = solve_csp(problem)
+    return solution
+
+if __name__ == "__main__":
+    sol = australia_example()
+    if sol:
+        print("Solution found:")
+        for k in sorted(sol.keys()):
+            print(f"{k}: {sol[k]}")
+    else:
+        print("No solution exists.")
